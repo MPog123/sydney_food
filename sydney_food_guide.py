@@ -22,8 +22,16 @@ st.write("Enter your location and distance to find food spots near you!")
 # user_lat = -33.87172
 # user_lon = 151.2067
 
-# Get user's location
+st.write("📍 Running geolocation logic...")
+
 location = streamlit_js_eval(js_expressions=get_geolocation(), key="get_location")
+
+st.write("Location object:", location)
+
+if location and location.get("coords"):
+    st.success("✅ Got user location")
+else:
+    st.warning("⚠️ Location unavailable — using default")
 
 if location and location.get("coords"):
     user_lat = location["coords"]["latitude"]
