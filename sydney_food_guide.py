@@ -5,6 +5,7 @@ from geopy.distance import geodesic
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import requests 
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
 # Load the data
 @st.cache_data
@@ -18,8 +19,20 @@ st.title("Sydney Food Finder")
 st.write("Enter your location and distance to find food spots near you!")
 
 # Default location: QVB
-user_lat = -33.87172
-user_lon = 151.2067
+# user_lat = -33.87172
+# user_lon = 151.2067
+
+# Get user's location
+location = streamlit_js_eval(js_expressions=get_geolocation(), key="get_location")
+
+if location and location.get("coords"):
+    user_lat = location["coords"]["latitude"]
+    user_lon = location["coords"]["longitude"]
+    st.success(f"Using your current location: {user_lat:.5f}, {user_lon:.5f}")
+else:
+    user_lat = -33.87172  # fallback (QVB)
+    user_lon = 151.2067
+    st.info("Using default location (QVB). Allow location access to use your real position.")
 
 # User inputs 
 radius = st.number_input("Enter search radius (in meters):", value=500, step=50)
