@@ -10,17 +10,15 @@ from streamlit_js_eval import streamlit_js_eval, get_geolocation
 # Load the data
 @st.cache_data
 def load_data():
-    return pd.read_csv("Sydney Food Guide.csv")
-
+    return pd.read_csv(
+        "Sydney Food Guide.csv",
+        encoding='latin1'  
+    )
 df = load_data()
 
 # App title
 st.title("Sydney Food Finder")
 st.write("Enter your location and distance to find food spots near you!")
-
-# Default location: QVB
-# user_lat = -33.87172
-# user_lon = 151.2067
 
 location = streamlit_js_eval(js_expressions=get_geolocation(), key="get_location")
 
@@ -39,18 +37,9 @@ else:
     st.info("Using default location (QVB). Allow location access to use your real position.")
 
 # User inputs 
-radius = st.number_input("Enter search radius (in meters):", value=500, step=50)
+radius = st.number_input("Enter search radius (in meters):", value=500, step=100)
 address = st.text_input("📍 Enter a location or place name:")
 geolocator = Nominatim(user_agent="food-finder", timeout=5)
-
-# if address:
-#     location = geolocator.geocode(address)
-
-#     if location:
-#         user_lat, user_lon = location.latitude, location.longitude
-#         st.success(f"Found: {location.address}")
-#     else:
-#         st.error("Place not found. Try a more specific name or full address.")
 
 if address:
     search_url = "https://nominatim.openstreetmap.org/search"
@@ -108,6 +97,15 @@ if selected_all:
 else:
     selected_categories= st.multiselect("Select cuisines:", all_categories, default=all_categories[:3])  # or empty by default
 
+# Price filter
+all_prices = sorted(df["Price"].dropna().unique())
+selected_all = st.checkbox("All Prices", value=True)
+
+if selected_all:
+    selected_prices = all_prices
+else:
+    selected_prices = st.multiselect("Select prices:", all_prices, default=all_prices[:3])  # or empty by default
+
 # Create the map
 m = folium.Map(location=user_location, zoom_start=14, titles="CartoDB Positron")
 folium.Marker(
@@ -117,11 +115,11 @@ folium.Marker(
 ).add_to(m)
 
 for _, row in df.iterrows():
-    if row["nearby"] and row["Category"] in selected_categories:
+    if row["nearby"] and row["Category"] in selected_categories and row["Price"] in selected_prices:
         color = "green"
     else:
         color = "blue"
-    popup_html = f"<b>{row['Name']}</b><br>Cuisine: {row['Category']}"
+    popup_html = f"<b>{row['Name']}</b><br>Cuisine: {row['Category']}<br>Price: {row['Price']}"
     folium.Marker(
         location=(row["Y"], row["X"]),
         popup=folium.Popup(popup_html, max_width=250),
