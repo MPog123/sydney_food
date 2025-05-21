@@ -27,14 +27,28 @@ if location and location.get("coords"):
 else:
     st.warning("⚠️ Location unavailable — using default")
 
-if location and location.get("coords"):
-    user_lat = location["coords"]["latitude"]
-    user_lon = location["coords"]["longitude"]
-    st.success(f"Using your current location: {user_lat:.5f}, {user_lon:.5f}")
-else:
-    user_lat = -33.87172  # fallback (QVB)
-    user_lon = 151.2067
-    st.info("Using default location (QVB). Allow location access to use your real position.")
+# Wait until location is received
+if "user_location" not in st.session_state:
+    if location is None:
+        st.info("📍 Waiting for location access...")
+        st.stop()
+    elif location.get("coords"):
+        user_lat = location["coords"]["latitude"]
+        user_lon = location["coords"]["longitude"]
+        st.session_state.user_location = (user_lat, user_lon)
+        st.session_state.map_center = (user_lat, user_lon)
+        st.success(f"✅ Using your location: {user_lat:.5f}, {user_lon:.5f}")
+        st.rerun()
+    else:
+        st.session_state.user_location = (-33.87172, 151.2067)  # QVB
+        st.session_state.map_center = st.session_state.user_location
+        st.info("⚠️ Using default location (QVB). Location access was denied or failed.")
+        st.rerun()
+
+user_location = st.session_state.user_location
+
+if "map_center" not in st.session_state:
+    st.session_state.map_center = st.session_state.user_location  # fallback to user location
 
 # User inputs 
 radius = st.number_input("Enter search radius (in meters):", value=500, step=100)
@@ -79,8 +93,6 @@ if address:
     except Exception as e:
         st.error(f"Error searching address: {e}")
 
-user_location = (user_lat, user_lon)
-
 # Calculate distance and highlight nearby places
 def is_nearby(row):
     place = (row["Y"], row["X"])
@@ -95,7 +107,7 @@ selected_all = st.checkbox("All Cuisines", value=True)
 if selected_all:
     selected_categories = all_categories
 else:
-    selected_categories= st.multiselect("Select cuisines:", all_categories, default=all_categories[:3])  # or empty by default
+    selected_categories= st.multiselect("Select cuisines:", all_categories, default=[])  # or empty by default
 
 # Price filter
 all_prices = sorted(df["Price"].dropna().unique())
@@ -104,21 +116,43 @@ selected_all = st.checkbox("All Prices", value=True)
 if selected_all:
     selected_prices = all_prices
 else:
-    selected_prices = st.multiselect("Select prices:", all_prices, default=all_prices[:3])  # or empty by default
+    selected_prices = st.multiselect("Select prices:", all_prices, default=all_prices[:2])  # or empty by default
 
+# Suburb filter
+all_suburbs = sorted(df["Suburb"].dropna().unique())
+selected_all = st.checkbox("All Suburbs", value=True)
+
+if selected_all: 
+    selected_suburbs = all_suburbs
+else: 
+    selected_suburbs = st.multiselect("Select suburbs:", all_suburbs, default=[])  # or empty by default
+
+st.markdown("### 🗺️ Map")
+
+# Recenter button in top-right-like position using columns
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("Recenter", use_container_width=True):
+        st.session_state.map_center = st.session_state.user_location
+        if st.session_state.get("selected_place") != None:
+            del st.session_state.selected_place
+        st.rerun()
+        
 # Create the map
-m = folium.Map(location=user_location, zoom_start=14, titles="CartoDB Positron")
+m = folium.Map(location=st.session_state.map_center, zoom_start=14, titles="CartoDB Positron")
 folium.Marker(
-    location=user_location,
+    location=st.session_state.user_location,
     popup="You are here",
     icon=folium.Icon(color="red")
 ).add_to(m)
 
 for _, row in df.iterrows():
-    if row["nearby"] and row["Category"] in selected_categories and row["Price"] in selected_prices:
+    if row["nearby"] and row["Category"] in selected_categories and row["Price"] in selected_prices and row["Suburb"] in selected_suburbs:
         color = "green"
     else:
         color = "blue"
+    if row["Name"] == st.session_state.get("selected_place"):
+        color = "purple"  # Highlight selected place
     popup_html = f"<b>{row['Name']}</b><br>Cuisine: {row['Category']}<br>Price: {row['Price']}"
     folium.Marker(
         location=(row["Y"], row["X"]),
@@ -128,3 +162,28 @@ for _, row in df.iterrows():
 
 # Display the map in Streamlit
 st_folium(m, width=725, height=500)
+
+st.markdown("---")
+st.subheader("📋 Explore Places by Cuisine")
+
+for cuisine in sorted(df["Category"].dropna().unique()):
+    with st.expander(f"{cuisine} ({(df['Category'] == cuisine).sum()} places)"):
+        # Filter and sort
+        cuisine_places = df[df["Category"] == cuisine].sort_values("Name")
+        for _, row in cuisine_places.iterrows():
+            button_label = f"{row['Name']}"
+            if st.button(button_label, key=f"{row['Name']}-{row['X']}-{row['Y']}"):
+                if st.session_state.get("selected_place") == row['Name']:
+                    st.session_state.map_center = st.session_state.user_location
+                    del st.session_state["selected_place"]
+                else:
+                    st.session_state.map_center = (row["Y"], row["X"])
+                    st.session_state.selected_place = row['Name']
+                st.rerun() # force an immediate re-render
+
+            # Display extra info under each button
+            st.markdown(
+                f"<span style='color:blue'>Price:</span> {row['Price']}, "
+                f"<span style='color:blue'>Suburb:</span> {row['Suburb']}",
+                unsafe_allow_html=True
+            )
