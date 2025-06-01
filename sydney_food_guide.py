@@ -7,8 +7,6 @@ from geopy.geocoders import Nominatim
 import requests 
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-print("My name is actually jeff")
-
 # Load the data
 @st.cache_data
 def load_data():
