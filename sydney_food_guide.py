@@ -6,7 +6,6 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import requests 
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # Load the data
 @st.cache_data
