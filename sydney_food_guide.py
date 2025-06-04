@@ -214,7 +214,9 @@ filtered_df = filtered_df[filtered_df["Price"].isin(selected_prices)]
 
 
 # --- Display Table ---
-df_display = filtered_df[["Name", "Category", "Suburb", "Price", "X", "Y"]].sort_values("Name").reset_index(drop=True)
+df_display = filtered_df[["Name", "Category", "Suburb", "Price"]].sort_values("Name").reset_index(drop=True)
 df_display.index = df_display.index + 1  # Make index 1-based
-st.dataframe(df_display[["Name", "Category", "Suburb", "Price"]], use_container_width=True, height=500)
-
+# st.dataframe(df_display, use_container_width=True, height=500)
+st.data_editor(df_display, use_container_width=True, hide_index=True, disabled=True)
+# Convert to HTML table without index
+# st.markdown(df_display.to_html(index=False), unsafe_allow_html=True)
