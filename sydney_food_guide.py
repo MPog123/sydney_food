@@ -228,7 +228,7 @@ selected_suburbs = st.multiselect("Suburb", all_suburbs)
 selected_prices = st.multiselect("Price", all_prices, default=all_prices)
 
 # Only Pog-Approved? 
-only_pog = st.checkbox("Only Pog-Approved", value=False)
+only_pog = st.checkbox("Only Pog-Approved?", value=False)
 
 # --- Filtered Data ---
 filtered_df = df.copy()
@@ -255,6 +255,14 @@ df_display["Pog Approved"] = (
       .astype(str).str.strip().replace({"Y": "✔", "N": "✘"})
 )
 # Rename header for display only
+st.markdown(
+    """
+    <style>
+    th { white-space: nowrap; }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 df_display.rename(columns={"Pog Approved": "Pog-Approved"}, inplace=True)
 
 df_display = df_display.sort_values("Name").reset_index(drop=True)
