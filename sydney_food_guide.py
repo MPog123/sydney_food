@@ -62,7 +62,7 @@ if address:
         "format": "json",
         "limit": 5,
         "addressdetails": 1,
-        "viewbox": "150.6980,-34.0545,151.3092,-33.5957",  # Using min/max coordinates
+        "viewbox": "150.67,-34.09,151.34,-33.59",  # Using min/max coordinates
         "bounded": 1  # restrict results to within viewbox
     }
     headers = {
