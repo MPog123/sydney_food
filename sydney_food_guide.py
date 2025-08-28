@@ -153,7 +153,7 @@ for _, row in df.iterrows():
         color = "blue"
     if row["Name"] == st.session_state.get("selected_place"):
         color = "purple"  # Highlight selected place
-    badge = "✔" if row["Pog-Approved"] == "Y" else "✘"
+    badge = "✔" if row["Pog Approved"] == "Y" else "✘"
     popup_html = (
         f"<b>{row['Name']}</b><br>"
         f"Cuisine: {row['Category']}<br>"
@@ -188,7 +188,7 @@ for cuisine in sorted(df["Category"].dropna().unique()):
                 st.rerun() # force an immediate re-render
 
             # Display extra info under each button
-            badge = "✔" if row["Pog-Approved"] == "Y" else "✘"
+            badge = "✔" if row["Pog Approved"] == "Y" else "✘"
             st.markdown(
                 f"<span style='color:blue'>Price:</span> {row['Price']}, "
                 f"<span style='color:blue'>Suburb:</span> {row['Suburb']}, "
@@ -224,18 +224,20 @@ if selected_suburbs:
 filtered_df = filtered_df[filtered_df["Price"].isin(selected_prices)]
 
 if only_pog: 
-    filtered_df = filtered_df[filtered_df["Pog-Approved"] == "Y"]
+    filtered_df = filtered_df[filtered_df["Pog Approved"] == "Y"]
 
 # --- Display Table ---
 # Convert Y/N -> ✔/✘ just for display
 df_display = (
-    filtered_df[["Name", "Category", "Suburb", "Price", "Pog-Approved"]]
+    filtered_df[["Name", "Category", "Suburb", "Price", "Pog Approved"]]
     .copy()
 )
-df_display["Pog-Approved"] = (
-    df_display["Pog-Approved"]
+df_display["Pog Approved"] = (
+    df_display["Pog Approved"]
       .astype(str).str.strip().replace({"Y": "✔", "N": "✘"})
 )
+# Rename header for display only
+df_display.rename(columns={"Pog Approved": "Pog-Approved"}, inplace=True)
 
 df_display = df_display.sort_values("Name").reset_index(drop=True)
 st.markdown(df_display.to_html(index=False), unsafe_allow_html=True)
