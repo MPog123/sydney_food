@@ -153,7 +153,13 @@ for _, row in df.iterrows():
         color = "blue"
     if row["Name"] == st.session_state.get("selected_place"):
         color = "purple"  # Highlight selected place
-    popup_html = f"<b>{row['Name']}</b><br>Cuisine: {row['Category']}<br>Price: {row['Price']}"
+    badge = "✔" if row["Pog-Approved"] == "Y" else "✘"
+    popup_html = (
+        f"<b>{row['Name']}</b><br>"
+        f"Cuisine: {row['Category']}<br>"
+        f"Price: {row['Price']}<br>"
+        f"Pog-Approved: {badge}"
+    )
     folium.Marker(
         location=(row["Y"], row["X"]),
         popup=folium.Popup(popup_html, max_width=250),
@@ -182,9 +188,11 @@ for cuisine in sorted(df["Category"].dropna().unique()):
                 st.rerun() # force an immediate re-render
 
             # Display extra info under each button
+            badge = "✔" if row["Pog-Approved"] == "Y" else "✘"
             st.markdown(
                 f"<span style='color:blue'>Price:</span> {row['Price']}, "
-                f"<span style='color:blue'>Suburb:</span> {row['Suburb']}",
+                f"<span style='color:blue'>Suburb:</span> {row['Suburb']}, "
+                f"<span style='color:blue'>Pog-Approved:</span> {badge}",
                 unsafe_allow_html=True
             )
 
@@ -201,6 +209,9 @@ selected_suburbs = st.multiselect("Suburb", all_suburbs)
 # Price
 selected_prices = st.multiselect("Price", all_prices, default=all_prices)
 
+# Only Pog-Approved? 
+only_pog = st.checkbox("Only Pog-Approved", value=False)
+
 # --- Filtered Data ---
 filtered_df = df.copy()
 
@@ -212,7 +223,19 @@ if selected_suburbs:
 
 filtered_df = filtered_df[filtered_df["Price"].isin(selected_prices)]
 
+if only_pog: 
+    filtered_df = filtered_df[filtered_df["Pog-Approved"] == "Y"]
 
 # --- Display Table ---
-df_display = filtered_df[["Name", "Category", "Suburb", "Price"]].sort_values("Name").reset_index(drop=True)
+# Convert Y/N -> ✔/✘ just for display
+df_display = (
+    filtered_df[["Name", "Category", "Suburb", "Price", "Pog-Approved"]]
+    .copy()
+)
+df_display["Pog-Approved"] = (
+    df_display["Pog-Approved"]
+      .astype(str).str.strip().replace({"Y": "✔", "N": "✘"})
+)
+
+df_display = df_display.sort_values("Name").reset_index(drop=True)
 st.markdown(df_display.to_html(index=False), unsafe_allow_html=True)
