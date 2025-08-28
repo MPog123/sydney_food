@@ -6,6 +6,7 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import requests 
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
+import re
 
 # Load the data
 @st.cache_data
@@ -15,6 +16,26 @@ def load_data():
         encoding='latin1'  
     )
 df = load_data()
+
+# --- Normalise column names (fix BOM, spaces, dashes) ---
+cleaned_cols = []
+for c in df.columns:
+    s = str(c)
+    s = s.replace("\ufeff", "")  # strip BOM if present
+    s = s.strip()                # trim whitespace
+    # unify weird dashes into a normal space or hyphen
+    s = re.sub(r"[\u2010-\u2015\u2212]", "-", s)
+    cleaned_cols.append(s)
+df.columns = cleaned_cols
+
+# --- Ensure the Pog col is consistent ---
+pog_candidates = {"Pog Approved", "Pog-Approved"}
+found = next((c for c in pog_candidates if c in df.columns), None)
+if found and found != "Pog Approved":
+    df.rename(columns={found: "Pog Approved"}, inplace=True)
+elif not found:
+    st.error(f"⚠️ Could not find a Pog Approved column. Found: {df.columns.tolist()}")
+    st.stop()
 
 # App title
 st.title("Sydney Food Finder")
