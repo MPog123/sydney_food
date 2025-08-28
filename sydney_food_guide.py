@@ -11,31 +11,28 @@ import re
 # Load the data
 @st.cache_data
 def load_data():
-    return pd.read_csv(
-        "Sydney Food Guide.csv",
-        encoding='latin1'  
-    )
+    import re
+    # Read with latin1 encoding
+    df = pd.read_csv("Sydney Food Guide.csv", encoding="latin1")
+
+    # --- Normalise column names (strip BOM, unify dash types, trim spaces) ---
+    cleaned_cols = []
+    for c in df.columns:
+        s = str(c)
+        s = s.replace("\ufeff", "")   # remove BOM if present
+        s = s.strip()
+        s = re.sub(r"[\u2010-\u2015\u2212]", "-", s)  # normalise dashes to "-"
+        cleaned_cols.append(s)
+    df.columns = cleaned_cols
+
+    # --- Force canonical "Pog Approved" column name ---
+    pog_candidates = {"Pog-Approved", "PogApproved", "Pog_Approved"}
+    for candidate in pog_candidates:
+        if candidate in df.columns:
+            df.rename(columns={candidate: "Pog Approved"}, inplace=True)
+
+    return df
 df = load_data()
-
-# --- Normalise column names (fix BOM, spaces, dashes) ---
-cleaned_cols = []
-for c in df.columns:
-    s = str(c)
-    s = s.replace("\ufeff", "")  # strip BOM if present
-    s = s.strip()                # trim whitespace
-    # unify weird dashes into a normal space or hyphen
-    s = re.sub(r"[\u2010-\u2015\u2212]", "-", s)
-    cleaned_cols.append(s)
-df.columns = cleaned_cols
-
-# --- Ensure the Pog col is consistent ---
-pog_candidates = {"Pog Approved", "Pog-Approved"}
-found = next((c for c in pog_candidates if c in df.columns), None)
-if found and found != "Pog Approved":
-    df.rename(columns={found: "Pog Approved"}, inplace=True)
-elif not found:
-    st.error(f"⚠️ Could not find a Pog Approved column. Found: {df.columns.tolist()}")
-    st.stop()
 
 # App title
 st.title("Sydney Food Finder")
